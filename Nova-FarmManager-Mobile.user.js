@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Nova Farm Manager Mobile (v2.0.2)
+// @name         Nova Farm Manager Mobile (v2.0.3)
 // @name:fa      نوا فارم منیجر موبایل
 // @namespace    local.travian.nova.farmmanager.mobile
-// @version      2.0.2
+// @version      2.0.3
 // @description  Standalone Farm Manager for Travian Legends on mobile.
 // @author       Nova
 // @match        https://*.travian.com/*
@@ -22,7 +22,7 @@
 (function () {
   "use strict";
 
-  const VERSION = "2.0.2";
+  const VERSION = "2.0.3";
   const STORAGE_KEY = "travian_farm_manager_mobile_v1";
   const BACKUP_KEY = "travian_farm_manager_mobile_v2_backups";
   const STORAGE_VER = 1;
