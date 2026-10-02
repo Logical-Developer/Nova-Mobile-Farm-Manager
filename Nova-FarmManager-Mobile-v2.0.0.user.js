@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Nova Farm Manager Mobile
+// @name         Nova Farm Manager Mobile (v2.0.0)
 // @name:fa      نوا فارم منیجر موبایل
 // @namespace    local.travian.nova.farmmanager.mobile
 // @version      2.0.0
