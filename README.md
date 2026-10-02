@@ -5,7 +5,7 @@ Nova Mobile Farm Manager
 # Script URL:
 
 ```text
-https://raw.githubusercontent.com/Logical-Developer/Nova-Mobile-Farm-Manager/main/Nova-FarmManager-Mobile-v2.0.0.user.js
+https://github.com/Logical-Developer/Nova-Mobile-Farm-Manager/raw/refs/heads/main/Nova-FarmManager-Mobile.user.js
 ```
 
 ## Current mobile scope
