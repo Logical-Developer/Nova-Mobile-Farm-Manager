@@ -19,7 +19,11 @@ https://github.com/Logical-Developer/Nova-Mobile-Farm-Manager/raw/refs/heads/mai
 
 ## Version
 
-- v2.0.0
+- v2.0.1
+
+### v2.0.1
+
+- Closing the floating Resume panel hides it without discarding paused runs; Resume and Discard remain available in Rally Point.
 
 ## Development Plan
 

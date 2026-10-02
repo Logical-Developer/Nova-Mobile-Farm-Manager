@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Nova Farm Manager Mobile (v2.0.0)
+// @name         Nova Farm Manager Mobile (v2.0.1)
 // @name:fa      نوا فارم منیجر موبایل
 // @namespace    local.travian.nova.farmmanager.mobile
-// @version      2.0.0
+// @version      2.0.1
 // @description  Standalone Farm Manager for Travian Legends on mobile.
 // @author       Nova
 // @match        https://*.travian.com/*
@@ -15,14 +15,14 @@
 // @grant        none
 // @run-at       document-idle
 // @license      MIT
-// @updateURL    https://raw.githubusercontent.com/Logical-Developer/Nova-Mobile-Farm-Manager/main/Nova-FarmManager-Mobile-v2.0.0.user.js
-// @downloadURL  https://raw.githubusercontent.com/Logical-Developer/Nova-Mobile-Farm-Manager/main/Nova-FarmManager-Mobile-v2.0.0.user.js
+// @updateURL    https://raw.githubusercontent.com/Logical-Developer/Nova-Mobile-Farm-Manager/main/Nova-FarmManager-Mobile.user.js
+// @downloadURL  https://raw.githubusercontent.com/Logical-Developer/Nova-Mobile-Farm-Manager/main/Nova-FarmManager-Mobile.user.js
 // ==/UserScript==
 
 (function () {
   "use strict";
 
-  const VERSION = "2.0.0";
+  const VERSION = "2.0.1";
   const STORAGE_KEY = "travian_farm_manager_mobile_v1";
   const BACKUP_KEY = "travian_farm_manager_mobile_v2_backups";
   const STORAGE_VER = 1;
@@ -32,6 +32,7 @@
   const DEBUG_KEY = "fm_mobile_debug_v1";
   const STOP_KEY = "fm_stop_requested_v1";
   const MAP_COLLAPSED_KEY = "fm_map_collapsed_v1";
+  let resumeFloatingDismissed = false;
   const POLL_MS = 1000;
   const STUCK_MS = 15000;
   const MAX_RETRIES = 2;
@@ -1110,6 +1111,11 @@
   // ─── Resume Floating ───
   function updateResumeFloating() {
     try {
+      if (resumeFloatingDismissed) {
+        const dismissed = document.getElementById("fm-resume-float");
+        if (dismissed) dismissed.remove();
+        return;
+      }
       const runs = readResumableRuns(getVillageId());
       let el = document.getElementById("fm-resume-float");
       if (!runs.length) {
@@ -1137,7 +1143,7 @@
           .map((run, index) => {
             const done = run.stats.sent + run.stats.failed + run.stats.skipped;
             const remain = run.remaining.length + (run.current ? 1 : 0);
-            return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid rgba(255,255,255,.35);"><div style="flex:1;min-width:0;"><b>${esc(run.sourceVillageName || "?")} · ${esc(run.listName || "?")}</b><div style="font-size:10px;opacity:.9;">${done}/${run.totalPlanned} processed · ${remain} remaining</div></div><button type="button" data-resume-index="${index}" style="padding:7px 9px;background:#fff;color:#805020;border:0;border-radius:4px;font-weight:bold;">Resume</button><button type="button" data-discard-index="${index}" title="Discard run" style="padding:7px 9px;background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:4px;">×</button></div>`;
+            return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid rgba(255,255,255,.35);"><div style="flex:1;min-width:0;"><b>${esc(run.sourceVillageName || "?")} · ${esc(run.listName || "?")}</b><div style="font-size:10px;opacity:.9;">${done}/${run.totalPlanned} processed · ${remain} remaining</div></div><button type="button" data-resume-index="${index}" style="padding:7px 9px;background:#fff;color:#805020;border:0;border-radius:4px;font-weight:bold;">Resume</button></div>`;
           })
           .join("");
       el.querySelectorAll("[data-resume-index]").forEach((button) => {
@@ -1146,14 +1152,18 @@
           if (run) resumeSavedRun(run.sourceVid, run.listId);
         };
       });
-      el.querySelectorAll("[data-discard-index]").forEach((button) => {
-        button.onclick = () => {
-          const run = runs[Number(button.dataset.discardIndex)];
-          if (!run || !confirm(`Discard paused run "${run.listName}"?`)) return;
-          clearRun(run.sourceVid, run.listId);
-          updateResumeFloating();
-        };
-      });
+      const closeButton = document.createElement("button");
+      closeButton.type = "button";
+      closeButton.textContent = "×";
+      closeButton.title = "Close resume panel";
+      closeButton.setAttribute("aria-label", "Close resume panel");
+      closeButton.style.cssText =
+        "position:absolute;top:5px;right:7px;padding:3px 8px;background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:4px;font-size:16px;";
+      el.appendChild(closeButton);
+      closeButton.onclick = () => {
+        resumeFloatingDismissed = true;
+        el.remove();
+      };
     } catch {}
   }
 
