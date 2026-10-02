@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Nova Farm Manager Mobile (v2.0.1)
+// @name         Nova Farm Manager Mobile (v2.0.2)
 // @name:fa      نوا فارم منیجر موبایل
 // @namespace    local.travian.nova.farmmanager.mobile
-// @version      2.0.1
+// @version      2.0.2
 // @description  Standalone Farm Manager for Travian Legends on mobile.
 // @author       Nova
 // @match        https://*.travian.com/*
@@ -15,24 +15,24 @@
 // @grant        none
 // @run-at       document-idle
 // @license      MIT
-// @updateURL    https://raw.githubusercontent.com/Logical-Developer/Nova-Mobile-Farm-Manager/main/Nova-FarmManager-Mobile.user.js
-// @downloadURL  https://raw.githubusercontent.com/Logical-Developer/Nova-Mobile-Farm-Manager/main/Nova-FarmManager-Mobile.user.js
+// @updateURL    https://github.com/Logical-Developer/Nova-Mobile-Farm-Manager/raw/refs/heads/main/Nova-FarmManager-Mobile.user.js
+// @downloadURL  https://github.com/Logical-Developer/Nova-Mobile-Farm-Manager/raw/refs/heads/main/Nova-FarmManager-Mobile.user.js
 // ==/UserScript==
 
 (function () {
   "use strict";
 
-  const VERSION = "2.0.1";
+  const VERSION = "2.0.2";
   const STORAGE_KEY = "travian_farm_manager_mobile_v1";
   const BACKUP_KEY = "travian_farm_manager_mobile_v2_backups";
   const STORAGE_VER = 1;
   const RUNS_KEY = "fm_mobile_runs_v2";
   const ACTIVE_RUN_KEY = "fm_mobile_active_run_v2";
   const LEGACY_RUN_KEY = "fm_mobile_run_v1";
+  const RESUME_DISMISSED_KEY = "fm_mobile_resume_dismissed_v2";
   const DEBUG_KEY = "fm_mobile_debug_v1";
   const STOP_KEY = "fm_stop_requested_v1";
   const MAP_COLLAPSED_KEY = "fm_map_collapsed_v1";
-  let resumeFloatingDismissed = false;
   const POLL_MS = 1000;
   const STUCK_MS = 15000;
   const MAX_RETRIES = 2;
@@ -228,6 +228,28 @@
   function makeRunKey(vid, listId) {
     return `${String(vid)}::${String(listId)}`;
   }
+  function readDismissedResumeKeys() {
+    try {
+      const keys = JSON.parse(
+        sessionStorage.getItem(RESUME_DISMISSED_KEY) || "[]",
+      );
+      return new Set(Array.isArray(keys) ? keys : []);
+    } catch {
+      return new Set();
+    }
+  }
+  function writeDismissedResumeKeys(keys) {
+    try {
+      sessionStorage.setItem(
+        RESUME_DISMISSED_KEY,
+        JSON.stringify(Array.from(keys)),
+      );
+    } catch {}
+  }
+  function forgetDismissedResume(vid, listId) {
+    const keys = readDismissedResumeKeys();
+    if (keys.delete(makeRunKey(vid, listId))) writeDismissedResumeKeys(keys);
+  }
   function readRunsMap() {
     try {
       const raw = sessionStorage.getItem(RUNS_KEY);
@@ -293,6 +315,9 @@
       }
       const runs = readRunsMap();
       const key = makeRunKey(run.sourceVid, run.listId);
+      if (!runs[key] || runs[key].runId !== run.runId) {
+        forgetDismissedResume(run.sourceVid, run.listId);
+      }
       runs[key] = run;
       writeRunsMap(runs);
       sessionStorage.setItem(ACTIVE_RUN_KEY, key);
@@ -302,7 +327,10 @@
     const runs = readRunsMap();
     const key = makeRunKey(vid, listId);
     if (run) runs[key] = run;
-    else delete runs[key];
+    else {
+      delete runs[key];
+      forgetDismissedResume(vid, listId);
+    }
     writeRunsMap(runs);
     try {
       if (!run && sessionStorage.getItem(ACTIVE_RUN_KEY) === key)
@@ -327,6 +355,7 @@
       sessionStorage.removeItem(RUNS_KEY);
       sessionStorage.removeItem(ACTIVE_RUN_KEY);
       sessionStorage.removeItem(LEGACY_RUN_KEY);
+      sessionStorage.removeItem(RESUME_DISMISSED_KEY);
     } catch {}
   }
   function resumeSavedRun(vid, listId) {
@@ -339,6 +368,7 @@
       );
       return false;
     }
+    forgetDismissedResume(vid, listId);
     clearStopRequest();
     run.stopped = false;
     run.phase = "idle";
@@ -1111,12 +1141,10 @@
   // ─── Resume Floating ───
   function updateResumeFloating() {
     try {
-      if (resumeFloatingDismissed) {
-        const dismissed = document.getElementById("fm-resume-float");
-        if (dismissed) dismissed.remove();
-        return;
-      }
-      const runs = readResumableRuns(getVillageId());
+      const dismissedRuns = readDismissedResumeKeys();
+      const runs = readResumableRuns(getVillageId()).filter(
+        (run) => !dismissedRuns.has(makeRunKey(run.sourceVid, run.listId)),
+      );
       let el = document.getElementById("fm-resume-float");
       if (!runs.length) {
         if (el) el.remove();
@@ -1161,7 +1189,11 @@
         "position:absolute;top:5px;right:7px;padding:3px 8px;background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:4px;font-size:16px;";
       el.appendChild(closeButton);
       closeButton.onclick = () => {
-        resumeFloatingDismissed = true;
+        const dismissed = readDismissedResumeKeys();
+        runs.forEach((run) =>
+          dismissed.add(makeRunKey(run.sourceVid, run.listId)),
+        );
+        writeDismissedResumeKeys(dismissed);
         el.remove();
       };
     } catch {}
